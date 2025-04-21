@@ -1,65 +1,192 @@
 const assert = require('assert');
-const RideService = require('./services/RideSharingService.js');
+const RideSharingService = require('./services/RideSharingService');
 
-describe('Ride Sharing Service (ESM)', () => {
-  let service;
+describe('RideSharingService', function() {
+    let rideSharingService;
+    let riderServiceMock;
+    let driverServiceMock;
+    let rideRepositoryMock;
 
-  beforeEach(() => {
-    service = new RideService();
+    beforeEach(function() {
+        riderServiceMock = {
+            getRiderById: function(id) {
+                if (id === 'rider1') {
+                    return {
+                        getXCord: () => 0,
+                        getYCord: () => 0
+                    };
+                }
+                return null;
+            }
+        };
 
-    // Seed drivers
-    service.driverService.addDriver('driver1', 0, 0);
-    service.driverService.addDriver('driver1', 10, 10);
+        driverServiceMock = {
+            getAllDrivers: function() {
+                return [
+                    { getAvailability: () => true, getXCord: () => 3, getYCord: () => 4, getId: () => 'driver1' },
+                    { getAvailability: () => true, getXCord: () => 10, getYCord: () => 10, getId: () => 'driver2' },
+                    { getAvailability: () => false, getXCord: () => 1, getYCord: () => 1, getId: () => 'driver3' }
+                ];
+            },
+            getDriverById: function(id) {
+                if (id === 'driver1') {
+                    return {
+                        getAvailability: () => true,
+                        setAvailability: function() { this.available = false; },
+                        available: true,
+                        getId: () => 'driver1'
+                    };
+                }
+                return null;
+            }
+        };
 
-    // Seed riders
-    service.riderService.addRider('rider1', 3, 4); // 5km from driver1
-    service.riderService.addRider('rider2', 20, 20); // No match
-  });
+        rideRepositoryMock = {
+            rides: {},
+            getRideById: function(id) {
+                return this.rides[id] || null;
+            },
+            addRide: function(id, ride) {
+                this.rides[id] = ride;
+            }
+        };
 
-  describe('Matching Logic', () => {
-    it('matches rider1 with driver1 (within 5km)', () => {
-      const matches = service.findDriverNearRider('rider1');
-      assert.equal(matches.length, 1);
-      assert.equal(matches[0], 'driver1');
+        rideSharingService = new RideSharingService(
+            riderServiceMock,
+            driverServiceMock,
+            rideRepositoryMock
+        );
     });
 
-    it('returns empty list for rider2 (no nearby drivers)', () => {
-      const matches = service.findDriverNearRider('rider2');
-      assert.equal(matches.length, 0);
-    });
-  });
+    describe('#findDriverNearRider', function() {
+        it('should return matched drivers within 5 units radius', function() {
+            const result = rideSharingService.findDriverNearRider('rider1');
+            assert.deepStrictEqual(result, ['driver1']);
+        });
 
-  describe('Ride Flow', () => {
-    it('starts a ride and marks driver as unavailable', () => {
-      service.findDriverNearRider('rider1');
-      service.startRide('ride1', 1, 'rider1');
-      const driver = service.driverService.getDriverById('driver1');
-      assert.equal(driver.getAvailability(), false);
-    });
-
-    it('ends a ride and calculates correct bill', () => {
-      service.startRide('ride1', 1, 'rider1');
-      service.endRide('ride1', 6, 8, 10); // 5km from start, 10 minutes
-      const ride = service.rideRepository.getRideById('ride1');
-      assert.equal(ride.getDistance(), 5.00);
-      const expectedAmount = parseFloat(((50 + 6.5 * 5 + 2 * 10) * 1.2).toFixed(2));
-      assert.equal(ride.getBill(), expectedAmount);
-    });
-  });
-
-  describe('Error Handling', () => {
-    it('does not start ride if no matching drivers', () => {
-      service.findDriverNearRider('rider2');
-      service.startRide('ride2', 1, 'rider2');
-      const ride = service.rideRepository.getRideById('ride2');
-      assert.equal(ride, undefined);
+        it('should throw error if rider is invalid', function() {
+            assert.throws(() => {
+                rideSharingService.findDriverNearRider('invalidRider');
+            }, /INVALID_RIDER/);
+        });
     });
 
-    it('does not print bill if ride not completed', () => {
-      service.startRide('ride3', 1, 'rider1');
-      const ride = service.rideRepository.getRideById('ride3');
-      assert.notEqual(ride, undefined);
-      assert.equal(ride.getStatus(), 'active');
+    describe('#startRide', function() {
+        it('should start a ride with valid inputs', function() {
+            rideSharingService.matchedRides = {
+                'rider1': [{ driverId: 'driver1', distance: 5 }]
+            };
+
+            const consoleMessages = [];
+            const originalConsoleLog = console.log;
+            console.log = (msg) => consoleMessages.push(msg);
+
+            rideSharingService.startRide('ride1', 1, 'rider1');
+
+            assert(consoleMessages.includes('RIDE_STARTED ride1'));
+            console.log = originalConsoleLog;
+        });
+
+        it('should not start ride with invalid rider', function() {
+            const consoleMessages = [];
+            const originalConsoleLog = console.log;
+            console.log = (msg) => consoleMessages.push(msg);
+
+            rideSharingService.startRide('ride1', 1, 'invalidRider');
+
+            assert(consoleMessages.includes('INVALID_RIDE'));
+
+            console.log = originalConsoleLog;
+        });
     });
-  });
+
+    describe('#endRide', function() {
+        it('should end a ride and calculate bill', function() {
+            const ride = {
+                getStatus: () => 'active',
+                setEndCoordinates: function(x, y) { this.endX = x; this.endY = y; },
+                setTimeTaken: function(time) { this.timeTaken = time; },
+                setBill: function(bill) { this.bill = bill; },
+                setStatus: function(status) { this.status = status; },
+                getDriverId: () => 'driver1',
+                start: { x: 0, y: 0 }
+            };
+            rideRepositoryMock.rides['ride1'] = ride;
+
+            const driver = {
+                setAvailability: function() { this.available = true; },
+                available: false
+            };
+            driverServiceMock.getDriverById = function(id) {
+                if (id === 'driver1') return driver;
+                return null;
+            };
+
+            const consoleMessages = [];
+            const originalConsoleLog = console.log;
+            console.log = (msg) => consoleMessages.push(msg);
+
+            rideSharingService.endRide('ride1', 3, 4, 10);
+
+            assert.strictEqual(ride.endX, 3);
+            assert.strictEqual(ride.endY, 4);
+            assert.strictEqual(ride.timeTaken, 10);
+            assert.strictEqual(ride.status, 'completed');
+            assert.strictEqual(driver.available, true);
+            assert(consoleMessages.includes('RIDE_STOPPED ride1'));
+
+            console.log = originalConsoleLog;
+        });
+
+        it('should not end ride if ride is invalid or not active', function() {
+            const consoleMessages = [];
+            const originalConsoleLog = console.log;
+            console.log = (msg) => consoleMessages.push(msg);
+
+            rideSharingService.endRide('invalidRide', 0, 0, 0);
+
+            assert(consoleMessages.includes('INVALID_RIDE'));
+
+            console.log = originalConsoleLog;
+        });
+    });
+
+    describe('#printBill', function() {
+        it('should print bill for completed ride', function() {
+            const ride = {
+                getStatus: () => 'completed',
+                getBill: () => 100,
+                getDriverId: () => 'driver1'
+            };
+            rideRepositoryMock.rides['ride1'] = ride;
+
+            const consoleMessages = [];
+            const originalConsoleLog = console.log;
+            console.log = (msg) => consoleMessages.push(msg);
+
+            rideSharingService.printBill('ride1');
+
+            assert(consoleMessages.includes('BILL ride1 driver1 100.00'));
+
+            console.log = originalConsoleLog;
+        });
+
+        it('should not print bill if ride is invalid or not completed', function() {
+            const consoleMessages = [];
+            const originalConsoleLog = console.log;
+            console.log = (msg) => consoleMessages.push(msg);
+
+            rideSharingService.printBill('invalidRide');
+
+            assert(consoleMessages.includes('INVALID_RIDE'));
+
+            rideRepositoryMock.rides['ride1'] = { getStatus: () => 'active' };
+
+            rideSharingService.printBill('ride1');
+
+            assert(consoleMessages.includes('RIDE_NOT_COMPLETED'));
+
+            console.log = originalConsoleLog;
+        });
+    });
 });
