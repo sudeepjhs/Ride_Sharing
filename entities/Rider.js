@@ -1,3 +1,4 @@
+const { validateId, validateCoordinates } = require("../utils/Validation.js");
 const User = require("./User.js");
 
 // The Rider class extends the User class, representing a rider in the ride-sharing system.
@@ -10,6 +11,8 @@ class Rider extends User {
      */
     constructor(id, x_cord, y_cord) {
         // Call the parent User class constructor to initialize common properties.
+        validateId(id);
+        validateCoordinates(x_cord, y_cord);
         super(id, x_cord, y_cord);
     }
 

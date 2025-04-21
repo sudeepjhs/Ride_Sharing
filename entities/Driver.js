@@ -1,4 +1,5 @@
 const User = require("./User.js");
+const { validateId, validateCoordinates } = require("../utils/Validation.js");
 
 // The Driver class extends the User class, representing a driver in the ride-sharing system.
 class Driver extends User {
@@ -9,25 +10,19 @@ class Driver extends User {
      * @param {number} y_cord - Y-coordinate of the driver's location.
      */
     constructor(id, x_cord, y_cord) {
+        validateId(id);
+        validateCoordinates(x_cord, y_cord);
         // Call the parent User class constructor to initialize common properties.
         super(id, x_cord, y_cord);
-        this.available = true
-    }
-
-    /**
-     * Retrieves the driver's unique identifier.
-     * @returns {string} - The driver's ID.
-     */
-    getDriverId() {
-        return this.getId(); // Reuse the getId method from the User class.
+        this.available = true;
     }
 
     setAvailability(available) {
-        this.available = available
+        this.available = available;
     }
 
     getAvailability() {
-        return this.available
+        return this.available;
     }
 }
 
