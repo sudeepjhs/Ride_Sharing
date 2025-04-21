@@ -19,9 +19,6 @@ function validateCoordinates(x_cord, y_cord) {
     if (typeof x_cord !== "number" || typeof y_cord !== "number") {
         throw new Error("Invalid coordinates: Both X and Y must be numbers.");
     }
-    if (x_cord < 0 || y_cord < 0) {
-        throw new Error("Invalid coordinates: X and Y must be non-negative.");
-    }
 }
 
 module.exports = {
