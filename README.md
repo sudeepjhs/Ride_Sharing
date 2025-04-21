@@ -19,6 +19,35 @@ We expect your program to take the location to the text file as parameter. Input
 
 This main file, main.go should receive in the command line argument and parse the file passed in. Once the file is parsed and the application processes the commands, it should only print the output.
 
+# Build Instructions (Optional)
+
+If you are using TypeScript or need to build the project manually, follow these steps:
+
+1. Install dependencies and build the project:
+   ```bash
+   npm install
+   npm run build
+   ```
+
+   Ensure that the `build` script in your `package.json` compiles the TypeScript files into JavaScript.
+
+2. Run the program:
+   ```bash
+   node geektrust.js <absolute_path_to_input_file>
+   ```
+
+If you are not using TypeScript or do not require a build step, you can directly execute the program as described in the next section.
+
+# No Build Instructions
+
+This project does not require a build step. You can directly execute the program using Node.js.
+
+To run the program, use the following command:
+
+```bash
+node geektrust.js <absolute_path_to_input_file>
+```
+
  # Running the code for multiple test cases
 
  Please fill `input1.txt` and `input2.txt` with the input commands and use those files in `run.bat` or `run.sh`. Replace `./geektrust sample_input/input1.txt` with `./geektrust sample_input/input2.txt` to run the test case from the second file. 
