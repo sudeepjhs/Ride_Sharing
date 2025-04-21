@@ -1,4 +1,4 @@
-import Rider from '../entities/Rider';
+const Rider = require('../entities/Rider.js');
 
 /**
  * RiderRepository manages the storage and operations for Rider entities.
@@ -92,4 +92,4 @@ class RiderRepository {
     }
 }
 
-export default RiderRepository;
+module.exports = RiderRepository;

@@ -1,7 +1,7 @@
-import DriverService from "./DriverService";
-import RiderService from "./RiderService";
-import RideRepository from "../repositories/RideRepository";
-import Ride from "../entities/Ride";
+const DriverService = require("./DriverService.js");
+const RiderService = require("./RiderService.js");
+const RideRepository = require("../repositories/RideRepository.js");
+const Ride = require("../entities/Ride.js");
 
 /**
  * RideSharingService handles the business logic for managing rides.
@@ -29,7 +29,7 @@ class RideSharingService {
         if (!rider) throw new Error("INVALID_RIDER");
 
         const drivers = this.driverService.getAllDrivers();
-        const availableDrivers = [];
+        let availableDrivers = [];
 
         for (const driver of drivers) {
             if (!driver.getAvailability()) continue;
@@ -46,49 +46,132 @@ class RideSharingService {
             }
         }
 
-        availableDrivers.sort((a, b) => a.distance - b.distance);
-        this.matchedRides[riderId] = availableDrivers
-        return availableDrivers.map((d) => d.driverId);
+        if (availableDrivers.length === 0) {
+            console.log("NO_DRIVERS_AVAILABLE");
+            return [];
+        }
+
+        // Sort by distance ascending, then by driverId lex order if tie
+        availableDrivers.sort((a, b) => {
+            if (a.distance === b.distance) {
+                return a.driverId.localeCompare(b.driverId);
+            }
+            return a.distance - b.distance;
+        });
+
+        // Keep only top 5
+        availableDrivers = availableDrivers.slice(0, 5);
+
+        this.matchedRides[riderId] = availableDrivers;
+
+        const driverIds = availableDrivers.map(d => d.driverId);
+        console.log("DRIVERS_MATCHED " + driverIds.join(" "));
+        return driverIds;
     }
 
     /**
-     * Starts a ride for a rider with a matched driver.
+     * Starts a ride for a rider with the Nth matched driver.
+     * @param {string} rideId - The ID of the ride.
+     * @param {number} n - The index (1-based) of the matched driver to start ride with.
      * @param {string} riderId - The ID of the rider.
-     * @throws {Error} If the rider or driver is invalid or unavailable.
      */
-    startRide(riderId) {
+    startRide(rideId, n, riderId) {
         const rider = this.riderService.getRiderById(riderId);
-        if (!rider) throw new Error("INVALID_RIDER");
-        const driver = this.driverService.getDriverById(this.matchedRides[riderId].)
+        if (!rider) {
+            console.log("INVALID_RIDE");
+            return;
+        }
+
+        const matchedDrivers = this.matchedRides[riderId];
+        if (!matchedDrivers || matchedDrivers.length < n || n < 1) {
+            console.log("INVALID_RIDE");
+            return;
+        }
+
+        const driverId = matchedDrivers[n - 1].driverId;
+        const driver = this.driverService.getDriverById(driverId);
+        if (!driver || !driver.getAvailability()) {
+            console.log("INVALID_RIDE");
+            return;
+        }
+
+        // Check if rideId already exists
+        if (this.rideRepository.getRideById(rideId)) {
+            console.log("INVALID_RIDE");
+            return;
+        }
+
+        driver.setAvailability(false); // Mark driver as unavailable
+
         const ride = new Ride(
-            `${riderId}-${driverId}`,
+            rideId,
             rider.getXCord(),
             rider.getYCord(),
             riderId,
             driverId
         );
+        ride.setStatus('active');
 
         this.rideRepository.addRide(ride.getId(), ride);
+        console.log("RIDE_STARTED " + rideId);
     }
 
     /**
-     * Ends an active ride for a rider.
+     * Ends an active ride.
      * @param {string} rideId - The ID of the ride.
-     * @param {number} endX - X-coordinate of the ride's destination.
-     * @param {number} endY - Y-coordinate of the ride's destination.
+     * @param {number} endX - X-coordinate of the destination.
+     * @param {number} endY - Y-coordinate of the destination.
      * @param {number} timeTaken - Time taken for the ride.
-     * @throws {Error} If the ride is not active.
      */
     endRide(rideId, endX, endY, timeTaken) {
         const ride = this.rideRepository.getRideById(rideId);
-        if (!ride) throw new Error("NO_ACTIVE_RIDE");
+        if (!ride || ride.getStatus() !== 'active') {
+            console.log("INVALID_RIDE");
+            return;
+        }
 
         const driver = this.driverService.getDriverById(ride.getDriverId());
         ride.setEndCoordinates(endX, endY);
         ride.setTimeTaken(timeTaken);
 
-        driver.setAvailability(true); // Mark the driver as available again.
-        this.rideRepository.removeRideById(rideId); // Remove the ride from active rides.
+        // Calculate bill using formula:
+        // Base fare ₹50 + ₹6.5 per km + ₹2 per minute + 20% service tax
+        const distance = this._calculateDistance(
+            ride.start.x,
+            ride.start.y,
+            endX,
+            endY
+        );
+        const baseFare = 50;
+        const distanceFare = 6.5 * distance;
+        const timeFare = 2 * timeTaken;
+        const subtotal = baseFare + distanceFare + timeFare;
+        const totalBill = parseFloat((subtotal * 1.2).toFixed(2));
+
+        ride.setBill(totalBill);
+        ride.setStatus('completed');
+
+        driver.setAvailability(true); // Mark driver as available again.
+        console.log("RIDE_STOPPED " + rideId);
+    }
+
+    /**
+     * Prints the bill for a ride.
+     * @param {string} rideId - The ID of the ride.
+     */
+    printBill(rideId) {
+        const ride = this.rideRepository.getRideById(rideId);
+        if (!ride) {
+            console.log("INVALID_RIDE");
+            return;
+        }
+        if (ride.getStatus() !== 'completed') {
+            console.log("RIDE_NOT_COMPLETED");
+            return;
+        }
+        const bill = ride.getBill();
+        const driverId = ride.getDriverId();
+        console.log(`BILL ${rideId} ${driverId} ${bill.toFixed(2)}`);
     }
 
     /**

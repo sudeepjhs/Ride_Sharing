@@ -1,3 +1,5 @@
+const User = require("./User.js");
+
 // The Rider class extends the User class, representing a rider in the ride-sharing system.
 class Rider extends User {
     /**
@@ -20,4 +22,4 @@ class Rider extends User {
     }
 }
 
-export default Rider; // Export the Rider class for use in other modules.
+module.exports = Rider; // Export the Rider class for use in other modules.

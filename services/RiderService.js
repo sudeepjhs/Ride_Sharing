@@ -1,5 +1,5 @@
-import RiderRepository from "../repositories/RiderRepository";
-import { validateCoordinates, validateId } from "../utils/Validation";
+const RiderRepository = require("../repositories/RiderRepository.js");
+const { validateCoordinates, validateId } = require("../utils/Validation.js");
 
 /**
  * RiderService handles business logic for Rider entities.
@@ -67,4 +67,4 @@ class RiderService {
     }
 }
 
-export default RiderService;
+module.exports = RiderService;

@@ -1,5 +1,5 @@
-import DriverRepository from "../repositories/DriverRepository";
-import { validateCoordinates, validateId } from "../utils/Validation";
+const DriverRepository = require("../repositories/DriverRepository.js");
+const { validateCoordinates, validateId } = require("../utils/Validation.js");
 
 /**
  * DriverService handles business logic for Driver entities.
@@ -67,4 +67,4 @@ class DriverService {
     }
 }
 
-export default DriverService;
+module.exports = DriverService;

@@ -1,3 +1,4 @@
+
 /**
  * The Ride class represents a ride in the ride-sharing system.
  */
@@ -9,6 +10,8 @@ class Ride {
         this.riderId = riderId; // ID of the rider.
         this.driverId = driverId; // ID of the driver.
         this.timeTaken = null; // Time taken for the ride.
+        this.bill = null; // Bill for the ride.
+        this.status = 'active'; // Status of the ride: 'active' or 'completed'
     }
 
     /**
@@ -42,6 +45,38 @@ class Ride {
      */
     getTimeTaken() {
         return this.timeTaken;
+    }
+
+    /**
+     * Sets the bill for the ride.
+     * @param {number} bill - The bill amount.
+     */
+    setBill(bill) {
+        this.bill = bill;
+    }
+
+    /**
+     * Retrieves the bill for the ride.
+     * @returns {number|null} The bill amount.
+     */
+    getBill() {
+        return this.bill;
+    }
+
+    /**
+     * Sets the status of the ride.
+     * @param {string} status - The status ('active' or 'completed').
+     */
+    setStatus(status) {
+        this.status = status;
+    }
+
+    /**
+     * Retrieves the status of the ride.
+     * @returns {string} The status of the ride.
+     */
+    getStatus() {
+        return this.status;
     }
 
     /**

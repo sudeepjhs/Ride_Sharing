@@ -1,5 +1,3 @@
-// The User class represents a generic user in the ride-sharing system.
-// It serves as a base class for specific user types like Driver and Rider.
 class User {
     #id; // Private field to store the unique identifier of the user.
 
@@ -56,4 +54,4 @@ class User {
     }
 }
 
-export default User; // Export the User class for use in other modules.
+module.exports = User; // Export the User class for use in other modules.

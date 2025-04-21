@@ -1,4 +1,4 @@
-import Driver from '../entities/Driver';
+const Driver = require('../entities/Driver.js');
 
 /**
  * DriverRepository manages the storage and operations for Driver entities.
@@ -99,4 +99,4 @@ class DriverRepository {
     }
 }
 
-export default DriverRepository;
+module.exports = DriverRepository;
