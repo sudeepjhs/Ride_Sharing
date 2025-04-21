@@ -1,5 +1,5 @@
-import { strict as assert } from 'assert';
-import RideService from './services/RideSharingService.js';
+const assert = require('assert');
+const RideService = require('./services/RideSharingService.js');
 
 describe('Ride Sharing Service (ESM)', () => {
   let service;
