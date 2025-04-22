@@ -1,3 +1,5 @@
+const { DECIMAL_PLACES } = require("../constants");
+
 class BillGenerationService {
     constructor() {
         this.baseFare = 50;
@@ -15,7 +17,7 @@ class BillGenerationService {
         const distanceFare = this.distanceFare * distance;
         const timeFare = this.timeFare * timeTaken;
         const subtotal = this.baseFare + distanceFare + timeFare;
-        return parseFloat((subtotal + (subtotal * this.serviceTax)).toFixed(2)); // Including 20% service tax
+        return parseFloat((subtotal + (subtotal * this.serviceTax)).toFixed(DECIMAL_PLACES)); // Including 20% service tax
     }
 
     /**
@@ -26,7 +28,7 @@ class BillGenerationService {
      * @returns {string} The formatted bill string.
      */
     static formatBill(rideId, driverId, billAmount) {
-        return `BILL ${rideId} ${driverId} ${billAmount.toFixed(2)}`;
+        return `BILL ${rideId} ${driverId} ${billAmount.toFixed(DECIMAL_PLACES)}`;
     }
 }
 
